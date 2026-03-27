@@ -2,110 +2,78 @@ require("dotenv").config();
 
 const express = require("express");
 const path = require("path");
-const nodemailer = require("nodemailer");
 const rateLimit = require("express-rate-limit");
 const validator = require("validator");
+const { Resend } = require("resend");
 
 const app = express();
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-// 🔐 Middleware base
+// 🔒 Seguridad básica
 app.use(express.json());
 
-// 🚫 Rate limit (anti abuso)
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 20, // máximo 20 requests por IP
+  windowMs: 15 * 60 * 1000, // 15 min
+  max: 100, // límite por IP
 });
-app.use("/api/contact", limiter);
+app.use(limiter);
 
-// 🌐 Servir frontend
+// 📁 Servir frontend (ajustar si tu carpeta es distinta)
 app.use(express.static(path.join(__dirname, "public")));
 
-// 📩 Configurar mail (Gmail con App Password)
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
-
-// 🚀 Endpoint del formulario
+// 📩 Endpoint formulario
 app.post("/api/contact", async (req, res) => {
-  let { name, email, website, challenge, budget, company } = req.body;
-
-  // 🕵️ Honeypot (anti bots)
-  if (company) {
-    return res.status(400).end();
-  }
-
-  // 🔍 Validación básica
-  if (!name || !email || !challenge || !budget) {
-    return res.status(400).json({ error: "Campos obligatorios" });
-  }
-
-  // 🔒 Sanitización
-  name = validator.escape(name.trim());
-  email = validator.normalizeEmail(email);
-  website = website ? validator.escape(website.trim()) : "";
-  challenge = validator.escape(challenge.trim());
-  budget = validator.escape(budget);
-
-  // 📧 Validación de email real
-  if (!validator.isEmail(email)) {
-    return res.status(400).json({ error: "Email inválido" });
-  }
-
   try {
+    const { name, email, website, challenge, budget } = req.body;
+
+    console.log("REQ BODY:", req.body);
+
+    // 🔍 Validación
+    if (!name || !email || !challenge || !budget) {
+      return res.status(400).json({ error: "Campos obligatorios" });
+    }
+
+    if (!validator.isEmail(email)) {
+      return res.status(400).json({ error: "Email inválido" });
+    }
+
     // 📩 Mail para vos
-    await transporter.sendMail({
-      from: `"CSM Web - Lead" <${process.env.EMAIL_USER}>`,
-      to: process.env.EMAIL_USER,
-      subject: "Nuevo lead desde la web",
+    await resend.emails.send({
+      from: "CSM Web <onboarding@resend.dev>", // cambiar cuando tengas dominio
+      to: "santiagomcei@gmail.com", 
+      subject: "Nueva solicitud desde la web",
       html: `
-        <h2>Nuevo contacto</h2>
-        <p><strong>Nombre:</strong> ${name}</p>
-        <p><strong>Email:</strong> ${email}</p>
-        <p><strong>Sitio web:</strong> ${website || "No tiene"}</p>
-        <p><strong>Desafío:</strong></p>
-        <p>${challenge}</p>
-        <p><strong>Presupuesto:</strong> ${budget}</p>
+        <h2>Nuevo lead</h2>
+        <p><b>Nombre:</b> ${name}</p>
+        <p><b>Email:</b> ${email}</p>
+        <p><b>Web:</b> ${website || "No tiene"}</p>
+        <p><b>Desafío:</b> ${challenge}</p>
+        <p><b>Presupuesto:</b> ${budget}</p>
       `,
     });
 
     // 📩 Mail al cliente
-    await transporter.sendMail({
-      from: `"CSM Web" <${process.env.EMAIL_USER}>`,
+    await resend.emails.send({
+      from: "CSM Web <onboarding@resend.dev>",
       to: email,
-      subject: "Recibimos tu solicitud 🚀",
+      subject: "Recibimos tu solicitud",
       html: `
-        <h2>Hola ${name},</h2>
-        <p>Gracias por contactarte con <strong>CSM Web</strong>.</p>
-        <p>Recibimos tu solicitud y te vamos a responder en menos de 24 horas.</p>
-
-        <br>
-
-        <p><strong>Resumen:</strong></p>
-        <ul>
-          <li>Presupuesto: ${budget}</li>
-          <li>Sitio web: ${website || "No tiene"}</li>
-        </ul>
-
-        <br>
-
-        <p>— Equipo CSM Web</p>
+        <h2>Gracias ${name}</h2>
+        <p>Recibimos tu solicitud correctamente.</p>
+        <p>En breve te vamos a contactar.</p>
       `,
     });
 
-    res.status(200).json({ message: "OK" });
-
+    res.json({ success: true });
   } catch (error) {
-    console.error("Error enviando mail:", error);
+    console.error("ERROR RESEND:", error);
     res.status(500).json({ error: "Error enviando correo" });
   }
 });
 
-// 🚀 Start server
-app.listen(3000, () => {
-  console.log("Servidor corriendo en http://localhost:3000");
+// 🚀 Puerto dinámico (Render)
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log(`Servidor corriendo en puerto ${PORT}`);
 });
