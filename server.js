@@ -1,3 +1,6 @@
+console.log("ENV TEST:", process.env.RESEND_API_KEY);
+
+
 require("dotenv").config();
 
 const express = require("express");
