@@ -116,7 +116,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .navbar.scrolled {
-  background:rgba(5, 5, 5, 0.262);
+  background: rgba(5, 5, 5, 0.262);
   backdrop-filter: blur(30px);
   -webkit-backdrop-filter: blur(30px);
   border-bottom: 1px solid var(--border);
@@ -283,6 +283,7 @@ h1, h2, h3, h4, h5, h6 {
 .mobile-menu.open {
   display: block;
   animation: fadeDown 0.3s ease-out;
+  background-color: rgba(5, 5, 5, 0.262);
 }
 .mobile-menu.open a{
  color: white;
