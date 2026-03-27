@@ -284,6 +284,13 @@ h1, h2, h3, h4, h5, h6 {
   display: block;
   animation: fadeDown 0.3s ease-out;
 }
+.mobile-menu.open a{
+ color: white;
+}
+
+.mobile-menu.open a.active{
+ color: white;
+}
 
 .mobile-menu a {
   display: block;
@@ -300,7 +307,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .mobile-menu .btn {
-  width: 100%;
+  width: 70%;
   margin-top: 16px;
 }
 
